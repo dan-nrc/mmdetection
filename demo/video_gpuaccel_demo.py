@@ -37,7 +37,7 @@ def parse_args():
         '--nvdecode', action='store_true', help='Use NVIDIA decoder')
     parser.add_argument(
         '--wait-time',
-        type=float,
+        type=int,
         default=1,
         help='The interval of show (s), 0 is block')
     args = parser.parse_args()
@@ -112,7 +112,7 @@ def main():
 
     with torch.no_grad():
         for i, (frame_resize, frame_origin) in enumerate(
-                zip(track_iter_progress(video_resize), video_origin)):
+                zip(video_resize, video_origin)):
             data = pack_data(frame_resize, batch_input_shape, ori_shape)
             result = model.test_step(data)[0]
 

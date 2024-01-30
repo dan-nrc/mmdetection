@@ -8,7 +8,7 @@ from mmengine.utils import track_iter_progress
 
 from mmdet.apis import inference_detector, init_detector
 from mmdet.registry import VISUALIZERS
-
+import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDetection video demo')
@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument('--show', action='store_true', help='Show video')
     parser.add_argument(
         '--wait-time',
-        type=float,
+        type=int,
         default=1,
         help='The interval of show (s), 0 is block')
     args = parser.parse_args()
@@ -57,8 +57,9 @@ def main():
         video_writer = cv2.VideoWriter(
             args.out, fourcc, video_reader.fps,
             (video_reader.width, video_reader.height))
-
-    for frame in track_iter_progress(video_reader):
+    frame_nums = list(np.arange(0, len(video_reader),30))
+    for i in track_iter_progress(frame_nums):
+        frame = video_reader.get_frame(i)
         result = inference_detector(model, frame, test_pipeline=test_pipeline)
         visualizer.add_datasample(
             name='video',
