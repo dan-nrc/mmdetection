@@ -402,6 +402,7 @@ class DetLocalVisualizer(Visualizer):
             # TODO: Supported in mmengine's Viusalizer.
             out_file: Optional[str] = None,
             pred_score_thr: float = 0.3,
+            only_class: Optional[int] = None,
             step: int = 0) -> None:
         """Draw datasample and save to all backends.
 
@@ -428,6 +429,7 @@ class DetLocalVisualizer(Visualizer):
             out_file (str): Path to output file. Defaults to None.
             pred_score_thr (float): The threshold to visualize the bboxes
                 and masks. Defaults to 0.3.
+            only_class (int): Only show one class in vis. Defaults to None.
             step (int): Global step value to record. Defaults to 0.
         """
         image = image.clip(0, 255).astype(np.uint8)
@@ -465,6 +467,9 @@ class DetLocalVisualizer(Visualizer):
                 pred_instances = data_sample.pred_instances
                 pred_instances = pred_instances[
                     pred_instances.scores > pred_score_thr]
+                if not only_class is None:
+                    pred_instances = pred_instances[
+                        pred_instances.labels == only_class]
                 pred_img_data = self._draw_instances(image, pred_instances,
                                                      classes, palette)
 

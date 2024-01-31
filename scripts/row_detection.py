@@ -1,11 +1,11 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import argparse
-
+from mmdet.evaluation.functional import bbox_overlaps
 import cv2
 import mmcv
 from mmcv.transforms import Compose
 from mmengine.utils import track_iter_progress
-
+import json
 from mmdet.apis import inference_detector, init_detector
 from mmdet.registry import VISUALIZERS
 import numpy as np
@@ -49,6 +49,14 @@ def main():
     # the dataset_meta is loaded from the checkpoint and
     # then pass to the model in init_detector
     visualizer.dataset_meta = model.dataset_meta
+    
+    #seat detect
+    with open(f"{args.video}.json",'r') as f:
+        bbox_seat = {a['label']:np.array(a['points']).flatten() for a in json.load(f)["shapes"]}
+        seat_labels = sorted(bbox_seat)
+        bbox_seat = np.stack([bbox_seat[l] for l in seat_labels],axis=0)
+    visualizer.dataset_meta['classes'] = seat_labels
+
 
     video_reader = mmcv.VideoReader(args.video)
     video_writer = None
@@ -61,14 +69,20 @@ def main():
     for i in track_iter_progress(frame_nums):
         frame = video_reader.get_frame(i)
         result = inference_detector(model, frame, test_pipeline=test_pipeline)
+        labels = np.array(result.pred_instances.labels.squeeze().cpu())
+        bbox_pred = np.array(result.pred_instances.bboxes.squeeze().cpu())
+        overlaps = bbox_overlaps(bbox_pred,bbox_seat)
+        keep = np.any(overlaps>0.3,axis=1) & (labels==0)
+        seat_label = np.argmax(overlaps,axis=1)
+        result.pred_instances = result.pred_instances[keep]
+        result.pred_instances.labels = seat_label[keep]
         visualizer.add_datasample(
             name='video',
             image=frame,
             data_sample=result,
             draw_gt=False,
             show=False,
-            pred_score_thr=args.score_thr,
-            only_class = 0)
+            pred_score_thr=args.score_thr)
         frame = visualizer.get_image()
 
         if args.show:
